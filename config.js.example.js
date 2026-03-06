@@ -9,7 +9,6 @@ export let ESCAPP_APP_SETTINGS = {
   keysType: "NUMBERS", //keys can be "NUMBERS", "LETTERS", "COLORS" or "SYMBOLS".
 
   //Settings that will be automatically specified by the Escapp server
-  solutionLength: 4,
   locale:"es",
 
   escappClientSettings: {

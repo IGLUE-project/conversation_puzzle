@@ -7,16 +7,23 @@ import { DEFAULT_APP_SETTINGS, SKIN_SETTINGS_RETRO, SKIN_SETTINGS_RETRO_JUNGLE, 
 import MainScreen from './MainScreen.jsx';
 import MessageScreen from './MessageScreen.jsx';
 
+const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
 export default function App() {
   const { escapp, setEscapp, appSettings, setAppSettings, Storage, setStorage, Utils, I18n } = useContext(GlobalContext);
   const hasExecutedEscappValidation = useRef(false);
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState(MAIN_SCREEN);
+  const [passed, setPassed] = useState(null);
   const prevScreen = useRef(screen);
   const solution = useRef(null);
   const [appWidth, setAppWidth] = useState(0);
   const [appHeight, setAppHeight] = useState(0);
-  
+  // Specific to this puzzle
+  const [currentQuestion, setCurrentQuestion] = useState({});
+  const [history, setHistory] = useState([]);
+
   useEffect(() => {
     //Init Escapp client
     if(escapp !== null){
@@ -48,7 +55,7 @@ export default function App() {
     if((typeof _appSettings.skin === "undefined")&&(typeof DEFAULT_APP_SETTINGS.skin === "string")){
       _appSettings.skin = DEFAULT_APP_SETTINGS.skin;
     }
-
+    
     let skinSettings;
     switch(_appSettings.skin){
       case "RETRO":
@@ -76,28 +83,6 @@ export default function App() {
       _appSettings.actionAfterSolve = DEFAULT_APP_SETTINGS.actionAfterSolve;
     }
 
-    switch(_appSettings.keysType){
-      case "LETTERS":
-        _appSettings.keys = _appSettings.letters;
-        _appSettings.backgroundKeys = new Array(12).fill(_appSettings.backgroundKey);
-        break;
-      case "COLORS":
-        _appSettings.keys = _appSettings.colors;
-        _appSettings.backgroundKeys = _appSettings.coloredBackgroundKeys;
-        break;
-      case "SYMBOLS":
-        _appSettings.keys = _appSettings.symbols;
-        if((_appSettings.skin === "FUTURISTIC")&&(_appSettings.backgroundKey === "images/background_key_futuristic.png")){
-          _appSettings.backgroundKey = "images/background_key_futuristic_black.png";
-        }
-        _appSettings.backgroundKeys = new Array(12).fill(_appSettings.backgroundKey);
-        break;
-      default:
-        //NUMBERS
-        _appSettings.keys = _appSettings.numbers;
-        _appSettings.backgroundKeys = new Array(12).fill(_appSettings.backgroundKey);
-    }
-
     //Init internacionalization module
     I18n.init(_appSettings);
 
@@ -108,6 +93,15 @@ export default function App() {
     //Change HTTP protocol to HTTPs in URLs if necessary
     _appSettings = Utils.checkUrlProtocols(_appSettings);
 
+    if(_appSettings.branchingJson){
+      try{
+        const branchingObj = JSON.parse(_appSettings.branchingJson);
+        _appSettings.branchingJsonParsed = branchingObj;
+        setCurrentQuestion(branchingObj);
+      } catch(e){
+        Utils.log("Error parsing branchingJson app setting. Check that it's a valid JSON string.", e);
+      }
+    }
     //Preload resources (if necessary)
     Utils.preloadImages([_appSettings.backgroundMessage]);
     //Utils.preloadAudios([_appSettings.soundBeep,_appSettings.soundNok,_appSettings.soundOk]); //Preload done through HTML audio tags
@@ -147,6 +141,8 @@ export default function App() {
           Utils.log("ESCAPP validation", success, erState);
           if(success){
             restoreAppState(erState);
+            setLoading(false);
+          } else {
             setLoading(false);
           }
         } catch (e){
@@ -212,33 +208,6 @@ export default function App() {
     }
   }
 
-  function onKeypadSolved(_solution){
-    Utils.log("onKeypadSolved with solution:", _solution);
-    if(typeof _solution !== "string"){
-      return;
-    }
-    solution.current = _solution;
-
-    switch(appSettings.actionAfterSolve){
-      case "SHOW_MESSAGE":
-        return setScreen(MESSAGE_SCREEN);
-      case "NONE":
-      default:
-        return submitPuzzleSolution();
-    }
-  }
-
-  function submitPuzzleSolution(){
-    Utils.log("Submit puzzle solution", solution.current);
-
-    escapp.submitNextPuzzle(solution.current, {}, (success, erState) => {
-      if(!success){
-        setScreen(MAIN_SCREEN);
-      }
-      Utils.log("Solution submitted to Escapp", solution.current, success, erState);
-    });
-  }
-
   const renderScreens = (screens) => {
     if (loading === true) {
       return null;
@@ -257,14 +226,86 @@ export default function App() {
     </div>
   );
 
+  const handleAnswerClick = (nextQuestion,index) => {
+    if(nextQuestion.next) {
+      setCurrentQuestion(nextQuestion.next);
+    } else {
+      setCurrentQuestion(nextQuestion);
+    }
+    
+    const newHist = [...history,index];
+    setHistory(newHist);
+    const nextAnswers = nextQuestion.next ? nextQuestion.next.answers : nextQuestion.answers;
+    if(!nextAnswers || nextAnswers.length == 0) {
+      onPuzzleSolved(newHist);
+    }
+  };
+
+
+  const submitPuzzleSolution = (_sol) => {
+    console.log(_sol)
+    escapp.submitNextPuzzle(_sol, {},  (success, erState) => {
+      if(!success){
+         setScreen(MAIN_SCREEN);
+         setPassed(false);
+      } else {
+        setPassed(true);
+      }
+
+      // Utils.log("Solution submitted to Escapp", _sol, success, erState);
+    });
+  }
+
+  const onPuzzleSolved = (hist) => {
+    const newHist = hist || history;
+    console.log("Puzzle solved with history:", newHist);
+    const lettersol = newHist.reduce((a,b)=>a+abc[b],"")
+    Utils.log("onKeypadSolved with solution:", lettersol);
+    if(typeof lettersol !== "string"){
+      return;
+    }
+ 
+    switch(appSettings.actionAfterSolve){
+      case "SHOW_MESSAGE":
+        return setScreen(MESSAGE_SCREEN);
+      case "NONE":
+      default:
+        return submitPuzzleSolution(lettersol);
+    }
+  }
+
+  const resetHistory = () => {
+    setHistory([]);
+    setPassed(undefined);
+    if (appSettings.branchingJsonParsed) {
+      setCurrentQuestion(appSettings.branchingJsonParsed);
+    } else {
+      setCurrentQuestion({
+        question:  "", 
+        answers: []
+      });
+    }
+  }
+
+  const onPuzzleSubmit = () => {
+    console.log("onPuzzleSubmit called", history); 
+    const lettersol = history.reduce((a,b)=>a+abc[b],"")
+    if(typeof lettersol !== "string"){
+      return;
+    }
+    submitPuzzleSolution(lettersol);
+  }
+
+
   let screens = [
     {
       id: MAIN_SCREEN,
-      content: <MainScreen appHeight={appHeight} appWidth={appWidth} onKeypadSolved={onKeypadSolved} />
+      content: <MainScreen appHeight={appHeight} appWidth={appWidth} currentQuestion={currentQuestion} passed={passed} 
+                           handleAnswerClick={handleAnswerClick} submitPuzzleSolution={onPuzzleSubmit}  reset={resetHistory}/>
     },
     {
       id: MESSAGE_SCREEN,
-      content: <MessageScreen appHeight={appHeight} appWidth={appWidth} submitPuzzleSolution={submitPuzzleSolution} />
+      content: <MessageScreen appHeight={appHeight} appWidth={appWidth} submitPuzzleSolution={onPuzzleSubmit} />
     }
   ];
 

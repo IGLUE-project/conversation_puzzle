@@ -5,7 +5,8 @@ div#screen_main {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: center;
+	justify-content: flex-end;
+	
 }
 
 div#keypad {
@@ -97,4 +98,278 @@ div.boxLight {
 
 div.boxLight.slowTransition {
 	transition: opacity 6.1s ease, visibility ease 6.1s;
+}
+
+
+
+
+
+#keypad{
+  
+  background-size: cover;
+  font-family: "Consolas", "Roboto", sans-serif;
+  text-align: center;
+  display: flex;
+  align-items: end;
+  height: 100%;
+}
+
+h1 {
+  margin-bottom: 5vmin;
+  font-size: 4vmin;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.questions li {
+  margin: 1vmin 0;
+  padding: 1vmin;
+  background-color: inherit;
+  cursor: pointer;
+  border-radius: 1vmin;
+  border: 2px solid white;
+  text-align: left;
+  font-size: 3vmin;
+
+}
+
+.questions li:hover {
+  background-color: white;
+  color: black;
+  border-color: white;
+}
+
+
+.questions {
+  flex: 1;
+  padding: 5vmin;
+  background-color: rgba(0,0,0,0.7);
+  color: white;
+  height: max-content;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+
+.exit{
+  background-color: white;
+  padding: 3vmin;
+  border-radius: 3vmin;
+  font-size: 4vmin;
+  cursor: pointer;
+}
+
+/* =====================================================
+   THEME STYLES - Standard, Retro, Futuristic
+   ===================================================== */
+
+/* STANDARD THEME - Clean, modern, dark glossy look */
+div.standard .questions,
+div#global_wrapper:not([class*="retro"]):not(.futuristic) .questions {
+  background: linear-gradient(180deg, rgba(45, 45, 50, 0.95) 0%, rgba(25, 25, 30, 0.95) 100%);
+  border: 2px solid rgba(100, 100, 110, 0.5);
+  border-radius: 2vmin;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+div.standard .questions h1,
+div#global_wrapper:not([class*="retro"]):not(.futuristic) .questions h1 {
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+div.standard .questions li,
+div#global_wrapper:not([class*="retro"]):not(.futuristic) .questions li {
+  background: linear-gradient(180deg, rgba(60, 60, 70, 0.8) 0%, rgba(40, 40, 50, 0.8) 100%);
+  border: 2px solid rgba(120, 120, 130, 0.4);
+  color: #e0e0e0;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+div.standard .questions li:hover,
+div#global_wrapper:not([class*="retro"]):not(.futuristic) .questions li:hover {
+  background: linear-gradient(180deg, rgba(80, 80, 90, 0.9) 0%, rgba(60, 60, 70, 0.9) 100%);
+  border-color: rgba(150, 150, 160, 0.6);
+  color: #ffffff;
+  transform: translateX(5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+div.standard .exit,
+div#global_wrapper:not([class*="retro"]):not(.futuristic) .exit {
+  background: linear-gradient(180deg, #4a4a55 0%, #35353d 100%);
+  color: #ffffff;
+  border: 2px solid rgba(120, 120, 130, 0.5);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+div.standard .exit:hover,
+div#global_wrapper:not([class*="retro"]):not(.futuristic) .exit:hover {
+  background: linear-gradient(180deg, #5a5a65 0%, #45454d 100%);
+  transform: scale(1.05);
+}
+
+/* RETRO THEME - Warm stone/earthy cartoon style */
+div.retro .questions,
+div.retro_jungle .questions,
+div.retro_realistic .questions {
+  background: linear-gradient(180deg, rgba(150, 120, 70, 0.95) 0%, rgba(100, 75, 40, 0.95) 100%);
+  border: 4px solid #5c4a1f;
+  border-radius: 1vmin;
+  box-shadow:
+    0 6px 0 #3d2f12,
+    inset 0 2px 0 rgba(255, 220, 150, 0.3),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+
+div.retro .questions h1,
+div.retro_jungle .questions h1,
+div.retro_realistic .questions h1 {
+  color: #fff8e0;
+  font-family: 'Retro', 'Courier New', monospace;
+  text-shadow:
+    2px 2px 0 #5c4a1f,
+    -1px -1px 0 #8b6914;
+  letter-spacing: 1px;
+}
+
+div.retro .questions li,
+div.retro_jungle .questions li,
+div.retro_realistic .questions li {
+  background: linear-gradient(180deg, #c4a35a 0%, #a88a40 100%);
+  border: 3px solid #5c4a1f;
+  border-radius: 0.5vmin;
+  color: #3d2f12;
+  font-family: 'Retro', 'Courier New', monospace;
+  font-weight: bold;
+  transition: all 0.15s ease;
+  box-shadow:
+    0 4px 0 #5c4a1f,
+    inset 0 1px 0 rgba(255, 220, 150, 0.5);
+}
+
+div.retro .questions li:hover,
+div.retro_jungle .questions li:hover,
+div.retro_realistic .questions li:hover {
+  background: linear-gradient(180deg, #d4b36a 0%, #b89a50 100%);
+  border-color: #4c3a0f;
+  color: #2d1f02;
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 #5c4a1f,
+    inset 0 1px 0 rgba(255, 220, 150, 0.6);
+}
+
+div.retro .exit,
+div.retro_jungle .exit,
+div.retro_realistic .exit {
+  background: linear-gradient(180deg, #c4a35a 0%, #a88a40 100%);
+  color: #3d2f12;
+  border: 3px solid #5c4a1f;
+  border-radius: 1vmin;
+  font-family: 'Retro', 'Courier New', monospace;
+  font-weight: bold;
+  box-shadow: 0 4px 0 #5c4a1f;
+  transition: all 0.15s ease;
+}
+
+div.retro .exit:hover,
+div.retro_jungle .exit:hover,
+div.retro_realistic .exit:hover {
+  background: linear-gradient(180deg, #d4b36a 0%, #b89a50 100%);
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #5c4a1f;
+}
+
+/* FUTURISTIC THEME - Dark metallic with orange accents */
+div.futuristic .questions {
+  background: linear-gradient(180deg, rgba(50, 60, 75, 0.95) 0%, rgba(30, 40, 55, 0.95) 100%);
+  border: 2px solid #4a5a6a;
+  border-radius: 0.5vmin;
+  box-shadow:
+    0 0 20px rgba(240, 160, 48, 0.15),
+    inset 0 1px 0 rgba(100, 140, 180, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+div.futuristic .questions::before,
+div.futuristic .questions::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #f0a030;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #f0a030, 0 0 20px rgba(240, 160, 48, 0.5);
+}
+
+div.futuristic .questions::before {
+  top: 10px;
+  left: 10px;
+}
+
+div.futuristic .questions::after {
+  top: 10px;
+  right: 10px;
+}
+
+div.futuristic .questions h1 {
+  color: #a0d0ff;
+  font-family: 'Orbitron', 'Consolas', monospace;
+  text-shadow: 0 0 10px rgba(160, 208, 255, 0.5);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+div.futuristic .questions li {
+  background: linear-gradient(180deg, rgba(60, 75, 95, 0.9) 0%, rgba(40, 55, 75, 0.9) 100%);
+  border: 1px solid #5a6a7a;
+  border-left: 3px solid #f0a030;
+  border-radius: 0.3vmin;
+  color: #c0d8f0;
+  font-family: 'Orbitron', 'Consolas', monospace;
+  transition: all 0.2s ease;
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(100, 140, 180, 0.1);
+}
+
+div.futuristic .questions li:hover {
+  background: linear-gradient(180deg, rgba(70, 90, 115, 0.95) 0%, rgba(50, 70, 95, 0.95) 100%);
+  border-color: #7a9aba;
+  border-left-color: #ffc040;
+  color: #ffffff;
+  transform: translateX(5px);
+  box-shadow:
+    0 0 15px rgba(240, 160, 48, 0.2),
+    0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+div.futuristic .exit {
+  background: linear-gradient(180deg, #3a4a5a 0%, #2a3a4a 100%);
+  color: #a0d0ff;
+  border: 2px solid #5a6a7a;
+  border-radius: 0.5vmin;
+  font-family: 'Orbitron', 'Consolas', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow:
+    0 0 10px rgba(240, 160, 48, 0.1),
+    inset 0 1px 0 rgba(100, 140, 180, 0.2);
+  transition: all 0.2s ease;
+}
+
+div.futuristic .exit:hover {
+  background: linear-gradient(180deg, #4a5a6a 0%, #3a4a5a 100%);
+  border-color: #f0a030;
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(240, 160, 48, 0.3);
 }
