@@ -2,25 +2,21 @@ import React from 'react';
 import {useState, useEffect, useRef, useContext } from 'react';
 import { GlobalContext } from "./GlobalContext";
 import './../assets/scss/app.scss';
-
-import { DEFAULT_APP_SETTINGS, SKIN_SETTINGS_RETRO, SKIN_SETTINGS_RETRO_JUNGLE, SKIN_SETTINGS_RETRO_REALISTIC, SKIN_SETTINGS_FUTURISTIC, ESCAPP_CLIENT_SETTINGS, MAIN_SCREEN, MESSAGE_SCREEN } from '../constants/constants.jsx';
+import { DEFAULT_APP_SETTINGS, SKIN_SETTINGS_RETRO, SKIN_SETTINGS_FUTURISTIC, ESCAPP_CLIENT_SETTINGS, MAIN_SCREEN } from '../constants/constants.jsx';
 import MainScreen from './MainScreen.jsx';
-import MessageScreen from './MessageScreen.jsx';
-
-const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export default function App() {
   const { escapp, setEscapp, appSettings, setAppSettings, Storage, setStorage, Utils, I18n } = useContext(GlobalContext);
   const hasExecutedEscappValidation = useRef(false);
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState(MAIN_SCREEN);
-  const [passed, setPassed] = useState(null);
+  const [showContinue, setShowContinue] = useState(false);
+  const [showReset, setShowReset] = useState(false);
   const prevScreen = useRef(screen);
   const solution = useRef(null);
   const [appWidth, setAppWidth] = useState(0);
   const [appHeight, setAppHeight] = useState(0);
-  // Specific to this puzzle
   const [currentQuestion, setCurrentQuestion] = useState({});
   const [history, setHistory] = useState([]);
 
@@ -38,7 +34,7 @@ export default function App() {
     setStorage(_escapp.getStorage());
 
     //Get app settings provided by the Escapp server.
-    let _appSettings = processAppSettings(_escapp.getAppSettings());
+    let _appSettings = processAppSettings(_escapp.getAppSettings(),_escapp.getSettings());
     setAppSettings(_appSettings);
     Utils.log("App settings:", _appSettings);
 
@@ -48,7 +44,7 @@ export default function App() {
     }
   }, []);
 
-  function processAppSettings(_appSettings){
+  function processAppSettings(_appSettings,_escappSettings){
     if(typeof _appSettings !== "object"){
       _appSettings = {};
     }
@@ -60,12 +56,6 @@ export default function App() {
     switch(_appSettings.skin){
       case "RETRO":
         skinSettings = SKIN_SETTINGS_RETRO;
-        break;
-      case "RETRO_JUNGLE":
-        skinSettings = SKIN_SETTINGS_RETRO_JUNGLE;
-        break;
-      case "RETRO_REALISTIC":
-        skinSettings = SKIN_SETTINGS_RETRO_REALISTIC;
         break;
       case "FUTURISTIC":
         skinSettings = SKIN_SETTINGS_FUTURISTIC;
@@ -89,6 +79,9 @@ export default function App() {
     if(typeof _appSettings.message !== "string"){
       _appSettings.message = I18n.getTrans("i.message");
     }
+
+    //Linked puzzles
+    _appSettings.noLinkedPuzzles = (!_escappSettings.linkedPuzzleIds || _escappSettings.linkedPuzzleIds.length < 1);
 
     //Change HTTP protocol to HTTPs in URLs if necessary
     _appSettings = Utils.checkUrlProtocols(_appSettings);
@@ -124,17 +117,6 @@ export default function App() {
         }
       });
 
-      escapp.registerCallback("onErRestartCallback", function(erState){
-        try {
-          Utils.log("Escape Room has been restarted.", erState);
-          if(typeof Storage !== "undefined"){
-            Storage.removeSetting("state");
-          }
-        } catch (e){
-          Utils.log("Error in onErRestartCallback", e);
-        }
-      });
-
       //Validate user. To be valid, a user must be authenticated and a participant of the escape room.
       escapp.validate((success, erState) => {
         try {
@@ -158,54 +140,19 @@ export default function App() {
     }
   }, [loading]);
 
-  useEffect(() => {
-    if (screen !== prevScreen.current) {
-      Utils.log("Screen ha cambiado de", prevScreen.current, "a", screen);
-      prevScreen.current = screen;
-      saveAppState();
-    }
-  }, [screen]);
-
   function handleResize(){
     setAppWidth(window.innerWidth);
     setAppHeight(window.innerHeight);
   }
 
   function restoreAppState(erState){
-    Utils.log("Restore application state based on escape room state:", erState);
-    if (escapp.getAllPuzzlesSolved() && (escapp.getSolvedPuzzles().length > 0)){
-      //Puzzle already solved
-      if((appSettings.actionAfterSolve === "SHOW_MESSAGE")&&(screen !== MESSAGE_SCREEN)){
-        setScreen(MESSAGE_SCREEN);
-      }
-    } else {
-      //Puzzle not solved. Restore app state based on local storage.
-      restoreAppStateFromLocalStorage();
-    }
-  }
-
-  function restoreAppStateFromLocalStorage(){
-    if(typeof Storage !== "undefined"){
-      let stateToRestore = Storage.getSetting("state");
-      if(stateToRestore){
-        Utils.log("Restore app state", stateToRestore);
-        setScreen(stateToRestore.screen);
-        if(typeof stateToRestore.solution === "string"){
-          solution.current = stateToRestore.solution;
-        }
-      }
-    }
-  }
-
-  function saveAppState(){
-    if(typeof Storage !== "undefined"){
-      let currentAppState = {screen: screen};
-      if(screen === MESSAGE_SCREEN){
-        currentAppState.solution = solution.current;
-      }
-      Utils.log("Save app state in local storage", currentAppState);
-      Storage.saveSetting("state",currentAppState);
-    }
+    // Utils.log("Restore application state based on escape room state:", erState);
+    // if (escapp.getAllPuzzlesSolved() && (escapp.getSolvedPuzzles().length > 0)){
+    //   //Puzzle already solved
+    //   // if(appSettings.actionAfterSolve === "SHOW_MESSAGE"){
+    //   // TO DO
+    //   // }
+    // }
   }
 
   const renderScreens = (screens) => {
@@ -226,57 +173,100 @@ export default function App() {
     </div>
   );
 
-  const handleAnswerClick = (nextQuestion,index) => {
-    if(nextQuestion.next) {
-      setCurrentQuestion(nextQuestion.next);
+  const getSolutionFromHistory = (history) => {
+    if (!Array.isArray(history) || history.length === 0) return undefined;
+    return history.reduce((a, b) => a + letters[b], "");
+  };
+
+  const handleAnswerClick = (question,index) => {
+    //Update history
+    const newHist = [...history,index];
+    setHistory(newHist);
+
+    const nextQuestion = (question.next !== null && typeof question.next === "object") ? question.next : undefined;
+    const nextAnswers = (nextQuestion?.answers !== null && typeof nextQuestion?.answers === "object") ? nextQuestion.answers : undefined;
+    let isDeadend = ((typeof nextQuestion !== "object" || typeof nextAnswers !== "object"));
+    if(isDeadend){
+      if(appSettings.noLinkedPuzzles===false){
+        let _solution = getSolutionFromHistory(newHist);
+        if(typeof _solution !== "undefined"){
+          escapp.checkNextPuzzle(_solution, {}, (success, erState) => {
+            Utils.log("Check solution Escapp response", success, erState);
+            try {
+              if (success) {
+                onSuccessPuzzle(question,nextQuestion,nextAnswers,_solution);
+              } else {
+                onFailPuzzle(question,nextQuestion,nextAnswers,_solution);
+              }
+            } catch(e){
+              Utils.log("Error in checkNextPuzzle",e);
+            }
+          });
+        }
+      } else {
+        if(typeof nextQuestion !== "undefined"){
+          setCurrentQuestion(nextQuestion);
+        } else {
+          setCurrentQuestion({id: 'deadend', text: "", next: null});
+        }
+        setShowReset(true);
+      }
     } else {
       setCurrentQuestion(nextQuestion);
     }
-    
-    const newHist = [...history,index];
-    setHistory(newHist);
-    const nextAnswers = nextQuestion.next ? nextQuestion.next.answers : nextQuestion.answers;
-    if(!nextAnswers || nextAnswers.length == 0) {
-      onPuzzleSolved(newHist);
+  };
+
+  const onFailPuzzle = (question,nextQuestion,nextAnswers,_solution) => {
+    let audio = document.getElementById("audio_failure");
+    audio.play();
+
+    if(typeof nextQuestion !== "undefined"){
+      //Feedback is shown through the next question
+      setCurrentQuestion(nextQuestion);
+    } else {
+      setCurrentQuestion({id: 'deadend', text: I18n.getTrans("i.fail_message"), next: null});
+    }
+    setShowReset(true);
+  };
+
+  const onSuccessPuzzle = (question,nextQuestion,nextAnswers,_solution) => {
+    // Utils.log("onPuzzleSolved with solution:", _solution);
+    solution.current = _solution;
+
+    let audio = document.getElementById("audio_success");
+    audio.play();
+
+    switch(appSettings.actionAfterSolve){
+      case "SHOW_MESSAGE":
+        if(typeof nextQuestion !== "undefined"){
+          //Feedback is shown through the next question
+          setCurrentQuestion(nextQuestion);
+        } else {
+          setCurrentQuestion({id: 'deadend', text: appSettings.message, next: null});
+        }
+        setShowContinue(true);
+        return;
+      case "NONE":
+      default:
+        setCurrentQuestion({id: 'deadend', text: "", next: null});
+        return submitPuzzleSolution(_solution);
     }
   };
 
-
-  const submitPuzzleSolution = (_sol) => {
-    console.log(_sol)
-    escapp.submitNextPuzzle(_sol, {},  (success, erState) => {
-      if(!success){
-         setScreen(MAIN_SCREEN);
-         setPassed(false);
-      } else {
-        setPassed(true);
-      }
-
-      // Utils.log("Solution submitted to Escapp", _sol, success, erState);
+  const submitPuzzleSolution = (_solution) => {
+    escapp.submitNextPuzzle(_solution, {},  (success, erState) => {
+      Utils.log("Solution submitted to Escapp", _solution, success, erState);
     });
-  }
+  };
 
-  const onPuzzleSolved = (hist) => {
-    const newHist = hist || history;
-    console.log("Puzzle solved with history:", newHist);
-    const lettersol = newHist.reduce((a,b)=>a+abc[b],"")
-    Utils.log("onKeypadSolved with solution:", lettersol);
-    if(typeof lettersol !== "string"){
-      return;
-    }
- 
-    switch(appSettings.actionAfterSolve){
-      case "SHOW_MESSAGE":
-        return setScreen(MESSAGE_SCREEN);
-      case "NONE":
-      default:
-        return submitPuzzleSolution(lettersol);
-    }
-  }
+  const onClickContinue = () => {
+    submitPuzzleSolution(solution.current);
+  };
 
-  const resetHistory = () => {
+  const onClickReset = () => {
     setHistory([]);
-    setPassed(undefined);
+    setShowContinue(false);
+    setShowReset(false);
     if (appSettings.branchingJsonParsed) {
       setCurrentQuestion(appSettings.branchingJsonParsed);
     } else {
@@ -287,25 +277,11 @@ export default function App() {
     }
   }
 
-  const onPuzzleSubmit = () => {
-    console.log("onPuzzleSubmit called", history); 
-    const lettersol = history.reduce((a,b)=>a+abc[b],"")
-    if(typeof lettersol !== "string"){
-      return;
-    }
-    submitPuzzleSolution(lettersol);
-  }
-
-
   let screens = [
     {
       id: MAIN_SCREEN,
-      content: <MainScreen appHeight={appHeight} appWidth={appWidth} currentQuestion={currentQuestion} passed={passed} 
-                           handleAnswerClick={handleAnswerClick} submitPuzzleSolution={onPuzzleSubmit}  reset={resetHistory}/>
-    },
-    {
-      id: MESSAGE_SCREEN,
-      content: <MessageScreen appHeight={appHeight} appWidth={appWidth} submitPuzzleSolution={onPuzzleSubmit} />
+      content: <MainScreen appHeight={appHeight} appWidth={appWidth} currentQuestion={currentQuestion} showContinue={showContinue} showReset={showReset} 
+                           handleAnswerClick={handleAnswerClick} onClickContinue={onClickContinue} onClickReset={onClickReset}/>
     }
   ];
 
